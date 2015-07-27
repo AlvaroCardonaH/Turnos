@@ -149,6 +149,8 @@ BEGIN
 		
 	-- Numero de Mensajeros que descansan	
 	SET Ln_NumeroMensajeroDescansan	= 	P_NumeroMensajeroDisponibles - P_NumeroMensajerosNecesitan;
+	
+	SELECT P_NumeroMensajeroDisponibles , P_NumeroMensajerosNecesitan, Ln_NumeroMensajeroDescansan ;
 		
 	-- Consultar datos generales de la programacion sugerida
 	OPEN Cursor_ProgramacionSugerida;        
@@ -222,7 +224,7 @@ BEGIN
 				
 		Resumen_Descanso_Mensajeros: WHILE ((Ln_No_Mas_Datos = 0)) DO
 				
-			UPDATE Temp_Mensajeros SET DescansoFestivoDominical = 1 WHERE Documento = Ln_Documento;
+			UPDATE Temp_Mensajeros SET DescansoFestivoDominical = 1, Seleccionado = 0, NumeroFestivosDominicales = 0 WHERE Documento = Ln_Documento;
 				
 			FETCH Cursor_Descanso_Mensajeros INTO Ln_Documento, Lc_NombreCompleto;
 		END WHILE Resumen_Descanso_Mensajeros;
@@ -253,6 +255,8 @@ BEGIN
 									
 			Ciclo_Mensajero_Disponible: WHILE ((Ln_Sale = 0)) DO
 			
+				UPDATE Temp_Mensajeros SET NumeroMensajero = 0 WHERE DescansoFestivoDominical = 0 AND Seleccionado = 0;
+			
 				SELECT COUNT(*) INTO Ln_TotalMensajerosDisponibles FROM Temp_Mensajeros 
 				WHERE DescansoFestivoDominical = 0 AND Seleccionado = 0;
 				
@@ -274,7 +278,7 @@ BEGIN
 				SELECT FLOOR(1 + (RAND() * Ln_TotalMensajerosDisponibles)) INTO Ln_PosicionTurno;
 								
 				SELECT Documento, NombreCompleto INTO Ln_Documento, Lc_NombreCompleto
-				FROM Temp_Mensajeros WHERE NumeroMensajero = Ln_PosicionTurno AND NumeroFestivosDominicales < 2 AND Seleccionado = 0;
+				FROM Temp_Mensajeros WHERE NumeroMensajero = Ln_PosicionTurno AND DescansoFestivoDominical = 0 AND Seleccionado = 0;
 				
 				-- HoraInicio = Lc_HoraInicioTurno AND HoraFinal = Lc_HoraFinalTurno AND
 				SELECT IFNULL(COUNT(*),0) INTO Ln_NumeroRegistros FROM Temp_ProgramacionTurnosFestivos 
@@ -318,8 +322,7 @@ BEGIN
 						
 						UPDATE Temp_Mensajeros SET PorcentajeHoras = Ln_PorcentajeHoras, Seleccionado = 1, 
 								NumeroFestivosDominicales = NumeroFestivosDominicales + Ln_Aumento
-								WHERE Documento = Ln_Documento;
-						
+								WHERE Documento = Ln_Documento;						
 						SET Ln_Sale = 1;
 					END IF;
 				END IF;
@@ -337,9 +340,8 @@ BEGIN
 		CLOSE Cursor_Temporal;
 		SET Ln_No_Mas_Datos = 0;
 		
-		UPDATE Temp_Mensajeros SET NumeroFestivosDominicales = 0, PorcentajeHoras = 0, Seleccionado = 0 WHERE Seleccionado = 0;
-		
-		UPDATE Temp_Mensajeros SET DescansoFestivoDominical = 0, NumeroMensajero = 0, PorcentajeHoras = 0, Seleccionado = 0;
+		-- Inicializar Valores del Temporal de Mensajeros
+		UPDATE Temp_Mensajeros SET PorcentajeHoras = 0, Seleccionado = 0;
 		
 		SELECT Ld_FechaInicial;
 		

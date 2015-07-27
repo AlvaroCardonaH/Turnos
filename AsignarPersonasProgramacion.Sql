@@ -38,8 +38,6 @@ BEGIN
 		
 		IF Ln_NumeroMensajeroDisponibles >= Ln_NumeroMensajerosNecesitan THEN
 	
-			SELECT Ln_NumeroMensajeroDisponibles , Ln_NumeroMensajerosNecesitan ;
-			
 			CASE Ln_IdClasificacionDia		
 			  WHEN 1 THEN CALL AsignarPersonasProgramacionNormal (P_IdProgramacionSugerida);
 			  WHEN 2 THEN CALL AsignarPersonasProgramacionFestivoDominical (P_IdProgramacionSugerida, Ln_NumeroMensajeroDisponibles, Ln_NumeroMensajerosNecesitan);
