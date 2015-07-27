@@ -1,6 +1,6 @@
 DELIMITER //
 CREATE PROCEDURE AsignarPersonasProgramacionFestivoDominical (P_IdProgramacionSugerida INT,
-																P_NumeroMensajeroDisponibles INT, 
+																P_NumeroMensajerosDisponibles INT, 
 																P_NumeroMensajerosNecesitan INT)
 BEGIN
 
@@ -84,7 +84,7 @@ BEGIN
 	
 	DECLARE Ln_TotalMensajerosDisponibles INT;
 	
-	DECLARE Ln_NumeroMensajeroDescansan INT;
+	DECLARE Ln_NumeroMensajerosDescansan INT;
 	
 	DECLARE Ln_Mensajero INT;
 	
@@ -122,7 +122,7 @@ BEGIN
 		SELECT Documento, NombreCompleto
 		FROM Temp_Mensajeros
         ORDER BY NumeroFestivosDominicales DESC
-		LIMIT Ln_NumeroMensajeroDescansan;
+		LIMIT Ln_NumeroMensajerosDescansan;
 		
 	DECLARE Cursor_Semanas CURSOR FOR 
 		SELECT FechaInicial , FechaFinal
@@ -130,7 +130,7 @@ BEGIN
 		ORDER BY NumeroSemana;
 		
 	DECLARE Cursor_ProgramacionTurnos CURSOR FOR
-		SELECT NumeroTurno, HoraInicio, HoraFinal, Documento, NombreCompleto, DiferenciaHoras, HoraFinalAnterior
+		SELECT NumeroTurno, HoraInicio, HoraFinal, Documento, NombreCompleto, DiferenciaHoras, HoraFinalAnterior, PorcentajeHoras
 		FROM Temp_ProgramacionTurnosFestivos
 		WHERE FechaInicio = Ld_FechaInicial AND FechaFinal = Ld_FechaFinal
 		ORDER BY FechaInicio, NumeroTurno; 
@@ -148,9 +148,9 @@ BEGIN
 	Seleccionado INT, PorcentajeHoras INT, DescansoFestivoDominical INT);
 		
 	-- Numero de Mensajeros que descansan	
-	SET Ln_NumeroMensajeroDescansan	= 	P_NumeroMensajeroDisponibles - P_NumeroMensajerosNecesitan;
+	SET Ln_NumeroMensajerosDescansan	= 	P_NumeroMensajerosDisponibles - P_NumeroMensajerosNecesitan;
 	
-	SELECT P_NumeroMensajeroDisponibles , P_NumeroMensajerosNecesitan, Ln_NumeroMensajeroDescansan ;
+	SELECT P_NumeroMensajerosDisponibles , P_NumeroMensajerosNecesitan, Ln_NumeroMensajerosDescansan ;
 		
 	-- Consultar datos generales de la programacion sugerida
 	OPEN Cursor_ProgramacionSugerida;        
@@ -341,7 +341,7 @@ BEGIN
 		SET Ln_No_Mas_Datos = 0;
 		
 		-- Inicializar Valores del Temporal de Mensajeros
-		UPDATE Temp_Mensajeros SET PorcentajeHoras = 0, Seleccionado = 0;
+		UPDATE Temp_Mensajeros SET DescansoFestivoDominical = 0, PorcentajeHoras = 0, Seleccionado = 0;
 		
 		SELECT Ld_FechaInicial;
 		
@@ -380,15 +380,15 @@ BEGIN
 		SET Ln_No_Mas_Datos = 0;
 		
 		OPEN Cursor_ProgramacionTurnos;
-		FETCH Cursor_ProgramacionTurnos INTO Ln_NumeroTurno, Lc_HoraInicioTurno, Lc_HoraFinalTurno, Ln_Documento, Lc_NombreCompleto, Ln_DiferenciaHoras, Lc_HoraFinalAnterior;
+		FETCH Cursor_ProgramacionTurnos INTO Ln_NumeroTurno, Lc_HoraInicioTurno, Lc_HoraFinalTurno, Ln_Documento, Lc_NombreCompleto, Ln_DiferenciaHoras, Lc_HoraFinalAnterior, Ln_PorcentajeHoras;
 
 		Resumen_Programacion:  WHILE ((Ln_No_Mas_Datos = 0)) DO
 
 			INSERT INTO t_ProgramacionTurnoMensajeros (IdProgramacionTurnoFecha, NumeroTurno, HoraInicio, HoraFinal, Documento, NombreCompleto,
-			DiferenciaHoras, HoraFinalAnterior) VALUES (Ln_UltimoIdProgramacionFecha, Ln_NumeroTurno, Lc_HoraInicioTurno, Lc_HoraFinalTurno, Ln_Documento,
-			Lc_NombreCompleto, Ln_DiferenciaHoras, Lc_HoraFinalAnterior);
+			DiferenciaHoras, HoraFinalAnterior, PorcentajeHoras) VALUES (Ln_UltimoIdProgramacionFecha, Ln_NumeroTurno, Lc_HoraInicioTurno, Lc_HoraFinalTurno, Ln_Documento,
+			Lc_NombreCompleto, Ln_DiferenciaHoras, Lc_HoraFinalAnterior, Ln_PorcentajeHoras);
 		
-			FETCH Cursor_ProgramacionTurnos INTO Ln_NumeroTurno, Lc_HoraInicioTurno, Lc_HoraFinalTurno, Ln_Documento, Lc_NombreCompleto, Ln_DiferenciaHoras, Lc_HoraFinalAnterior;
+			FETCH Cursor_ProgramacionTurnos INTO Ln_NumeroTurno, Lc_HoraInicioTurno, Lc_HoraFinalTurno, Ln_Documento, Lc_NombreCompleto, Ln_DiferenciaHoras, Lc_HoraFinalAnterior, Ln_PorcentajeHoras;
 		END WHILE Resumen_Programacion;
 		
 		CLOSE Cursor_ProgramacionTurnos;
@@ -408,9 +408,9 @@ BEGIN
 	
 	CLOSE Cursor_Semanas;
 	
-	-- DROP TEMPORARY TABLE Temp_ProgramacionSemanas ;
-	-- DROP TEMPORARY TABLE Temp_ProgramacionTurnosFestivos ;     
-	-- DROP TEMPORARY TABLE Temp_Mensajeros ;     
+	DROP TEMPORARY TABLE Temp_ProgramacionSemanas ;
+	DROP TEMPORARY TABLE Temp_ProgramacionTurnosFestivos ;     
+	DROP TEMPORARY TABLE Temp_Mensajeros ;     
 	
     -- SELECT Lc_Salida;
 END //

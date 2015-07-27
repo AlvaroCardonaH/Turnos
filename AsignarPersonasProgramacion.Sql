@@ -25,22 +25,18 @@ BEGIN
 	
 	IF Ln_CodigoEstadoRegistro = 1 THEN 
 	
-		-- Numero de Mensajeros Disponibles
-		IF Ln_IdClasificacionDia = 2 THEN		
-			SELECT COUNT(*) INTO Ln_NumeroMensajeroDisponibles
-			FROM m_Mensajeros M 
-			WHERE M.IdFlota = Ln_IdFlota AND M.NumeroFestivosDominicales < 2 AND M.CodigoEstadoRegistro = 1;	
-		ELSE
-			SELECT COUNT(*) INTO Ln_NumeroMensajeroDisponibles
-			FROM m_Mensajeros M 
-			WHERE M.IdFlota = Ln_IdFlota AND M.CodigoEstadoRegistro = 1;			
-		END IF;
+		SELECT COUNT(*) INTO Ln_NumeroMensajeroDisponibles
+		FROM m_Mensajeros M 
+		WHERE M.IdFlota = Ln_IdFlota AND M.CodigoEstadoRegistro = 1;	
+
+		SELECT Ln_NumeroMensajeroDisponibles , Ln_NumeroMensajerosNecesitan 		
 		
 		IF Ln_NumeroMensajeroDisponibles >= Ln_NumeroMensajerosNecesitan THEN
 	
 			CASE Ln_IdClasificacionDia		
 			  WHEN 1 THEN CALL AsignarPersonasProgramacionNormal (P_IdProgramacionSugerida);
-			  WHEN 2 THEN CALL AsignarPersonasProgramacionFestivoDominical (P_IdProgramacionSugerida, Ln_NumeroMensajeroDisponibles, Ln_NumeroMensajerosNecesitan);
+			  WHEN 2 THEN CALL AsignarPersonasProgramacionFestivoDominical (P_IdProgramacionSugerida, Ln_NumeroMensajeroDisponibles, 
+																			Ln_NumeroMensajerosNecesitan);
 			  WHEN 3 THEN CALL AsignarPersonasProgramacionClienteFiel (P_IdProgramacionSugerida);
 			  ELSE SELECT 0;
 			END CASE;	
