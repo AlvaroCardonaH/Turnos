@@ -216,6 +216,7 @@ BEGIN
 	-- Ciclo Semanas	
 	Resumen_Semanas:  WHILE ((Ln_No_Mas_Datos = 0)) DO
 
+		-- Saber que mensajeros descansan
 		OPEN Cursor_Descanso_Mensajeros;
 		FETCH Cursor_Descanso_Mensajeros INTO Ln_Documento, Lc_NombreCompleto;
 				
