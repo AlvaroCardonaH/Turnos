@@ -106,7 +106,8 @@ BEGIN
 	
 	DECLARE Cursor_Mensajeros CURSOR FOR			
 		SELECT M.Documento, 
-		CONCAT(M.PrimerNombre, ' ', M.SegundoNombre, ' ', M.PrimerApellido, ' ', M.SegundoApellido) AS NombreCompleto, M.JornadaFestivoDominical,
+		CONCAT(IFNULL(M.PrimerNombre,' '), ' ', IFNULL(M.SegundoNombre,' '), ' ', IFNULL(M.PrimerApellido,' '), ' ', IFNULL(M.SegundoApellido,' ')) AS NombreCompleto,
+		M.JornadaFestivoDominical,
 		M.NumeroFestivosDominicales
 		FROM m_mensajeros M 
 		WHERE M.IdFlota = P_IdFlota AND M.CodigoEstadoRegistro = 1

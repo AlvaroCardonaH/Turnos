@@ -89,8 +89,8 @@ BEGIN
 		ORDER BY PSD.NumeroMensajero;	
 	
 	DECLARE Cursor_Mensajeros CURSOR FOR			
-		SELECT M.Documento, 
-		CONCAT(M.PrimerNombre, ' ', M.SegundoNombre, ' ', M.PrimerApellido, ' ', M.SegundoApellido) AS NombreCompleto 
+		SELECT M.Documento,
+		CONCAT(IFNULL(M.PrimerNombre,' '), ' ', IFNULL(M.SegundoNombre,' '), ' ', IFNULL(M.PrimerApellido,' '), ' ', IFNULL(M.SegundoApellido,' ')) AS NombreCompleto
 		FROM m_mensajeros M 
 		WHERE M.IdFlota = P_IdFlota AND M.CodigoEstadoRegistro = 1;			
 		
