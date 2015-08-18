@@ -1,9 +1,8 @@
-CREATE PROCEDURE Generar_Resumen_DiaFestivo(
+CREATE PROCEDURE Generar_Resumen_DiaClienteFiel(
 					P_IdReportePedidosxPdv INT, 
                     P_IdClasificacionDia INT, 
 					P_NumeroMensajeros_Hora DECIMAL (2,1))
 BEGIN
-
 
 	-- Declaración de variables
 	DECLARE Ln_NumeroPosicion INT;
@@ -28,6 +27,7 @@ BEGIN
 	DECLARE Ln_NumeroServicios_Jueves INT;
 	DECLARE Ln_NumeroServicios_Viernes INT;
 	DECLARE Ln_NumeroServicios_Sabado INT;
+	DECLARE Ln_NumeroServicios_ClienteFiel INT;
 
 	DECLARE Ln_Numero_Mensajeros_Domingo INT;
 	DECLARE Ln_Numero_Mensajeros_Lunes INT;
@@ -36,20 +36,24 @@ BEGIN
 	DECLARE Ln_Numero_Mensajeros_Jueves INT;
 	DECLARE Ln_Numero_Mensajeros_Viernes INT;
 	DECLARE Ln_Numero_Mensajeros_Sabado INT;
+	DECLARE Ln_Numero_Mensajeros_ClienteFiel INT;
         
-    DECLARE Ln_Promedio_Mensajeros_Hora_Festivo INT;
+    DECLARE Ln_Promedio_Mensajeros_Hora_ClienteFiel INT;
+	DECLARE Ln_Promedio_Mensajeros_Hora_Normal INT;
+	DECLARE Ln_Promedio_Mensajeros_Hora_Festivo INT;	
+	
     DECLARE Ln_NumeroMensajeros_Dia INT;
     DECLARE Ln_NumeroDias INT;
-    
+
     DECLARE Ln_NumeroDiasFestivos INT;
     DECLARE Ln_IdFlota INT;    
 
 	-- Definición de la consulta
 	DECLARE Cursor_Resumen_Festivo CURSOR FOR
-		SELECT NumeroPosicion, IdHorario, HoraInicio, HoraFinal, NumeroDiaSemana, NombreDiaSemana, TotalRegistros 
-			FROM copservir_turnos.v_resumen_pedidos_festivos
+		SELECT NumeroPosicion, IdHorario, HoraInicio, HoraFinal, TotalRegistros 
+			FROM copservir_turnos.v_resumen_pedidos_clientefiel
 			WHERE IdReportePedidosxPdv = P_IdReportePedidosxPdv
-			ORDER BY NumeroPosicion, NumeroDiaSemana; 
+			ORDER BY NumeroPosicion; 
 
 	-- Declaración de un manejador de error tipo NOT FOUND
 	DECLARE CONTINUE HANDLER FOR NOT FOUND SET Ln_No_Mas_Datos = 1;
@@ -64,20 +68,22 @@ BEGIN
     SELECT IdFlota INTO Ln_IdFlota FROM h_reportepedidosxpdv 
 		WHERE IdReportePedidosxPdv = P_IdReportePedidosxPdv;
         
-    SET Ln_NumeroDiasFestivos = NumeroDiasFestivoReporte (P_IdReportePedidosxPdv, Ln_IdFlota);    
+    SET Ln_NumeroDiasFestivos = NumeroDiasClienteFielReporte (P_IdReportePedidosxPdv, Ln_IdFlota);    
     
 	-- Abrimos el cursor
 	OPEN Cursor_Resumen_Festivo;
 
 	-- Obtenemos la primera fila en la variables correspondientes
 	FETCH Cursor_Resumen_Festivo 
-		INTO Ln_NumeroPosicion, Ln_IdHorario, Lc_HoraInicio, Lc_HoraFinal, Ln_NumeroDiaSemana, Lc_NombreDiaSemana, Ln_TotalRegistros;		
+		INTO Ln_NumeroPosicion, Ln_IdHorario, Lc_HoraInicio, Lc_HoraFinal, Ln_TotalRegistros;		
 
 	-- Comenzamos nuestro bucle de lectura
 	Resumen_Loop: WHILE (Ln_No_Mas_Datos = 0) DO
 
 		-- Si el cursor se quedó sin elementos, entonces nos salimos del bucle
 		
+        SET Ln_NumeroServicios = CEILING(Ln_TotalRegistros / Ln_NumeroDiasFestivos);
+        
 		SET Ln_NumeroPosicion_Aux = Ln_NumeroPosicion ;
 		SET Ln_IdHorario_Aux = Ln_IdHorario;
 		SET Lc_HoraInicio_Aux = Lc_HoraInicio;
@@ -90,6 +96,7 @@ BEGIN
 		SET Ln_NumeroServicios_Jueves = 0;
 		SET Ln_NumeroServicios_Viernes = 0;
 		SET Ln_NumeroServicios_Sabado = 0;
+		SET Ln_NumeroServicios_ClienteFiel = 0;
 
 		SET Ln_Numero_Mensajeros_Domingo = 0;
 		SET Ln_Numero_Mensajeros_Lunes = 0;
@@ -98,78 +105,43 @@ BEGIN
 		SET Ln_Numero_Mensajeros_Jueves = 0;
 		SET Ln_Numero_Mensajeros_Viernes = 0;
 		SET Ln_Numero_Mensajeros_Sabado = 0;
+		SET Ln_Numero_Mensajeros_ClienteFiel = 0;
         
-        SET Ln_Promedio_Mensajeros_Hora_Festivo = 0;
+		SET Ln_Promedio_Mensajeros_Hora_Normal = 0;
+		SET Ln_Promedio_Mensajeros_Hora_Festivo = 0;
+        SET Ln_Promedio_Mensajeros_Hora_ClienteFiel = 0;
+		
         SET Ln_NumeroMensajeros_Dia = 0;
         SET Ln_NumeroDias = 0;
 		
-		NumeroPosicion_Loop : WHILE ( (Ln_No_Mas_Datos = 0) && (Ln_NumeroPosicion_Aux = Ln_NumeroPosicion) ) DO
-
-			SET Ln_NumeroServicios = CEILING(Ln_TotalRegistros / Ln_NumeroDiasFestivos);
-				
-			CASE Ln_NumeroDiaSemana
-				WHEN 1 THEN
-					SET Ln_NumeroServicios_Domingo = Ln_NumeroServicios;  
-                    SET Ln_Numero_Mensajeros_Domingo = ROUND((Ln_NumeroServicios / P_NumeroMensajeros_Hora),0);
-                    SET Ln_NumeroDias = Ln_NumeroDias + 1;            
-				WHEN 2 THEN
-					SET Ln_NumeroServicios_Lunes = Ln_NumeroServicios;  
-                    SET Ln_Numero_Mensajeros_Lunes = ROUND((Ln_NumeroServicios / P_NumeroMensajeros_Hora),0);
-                    SET Ln_NumeroDias = Ln_NumeroDias + 1;
-				WHEN 3 THEN
-					SET Ln_NumeroServicios_Martes = Ln_NumeroServicios;
-                    SET Ln_Numero_Mensajeros_Martes = ROUND((Ln_NumeroServicios / P_NumeroMensajeros_Hora),0);
-                    SET Ln_NumeroDias = Ln_NumeroDias + 1;
-				WHEN 4 THEN
-					SET Ln_NumeroServicios_Miercoles = Ln_NumeroServicios;
-                    SET Ln_Numero_Mensajeros_Miercoles = ROUND((Ln_NumeroServicios / P_NumeroMensajeros_Hora),0);
-                    SET Ln_NumeroDias = Ln_NumeroDias + 1;
-				WHEN 5 THEN
-					SET Ln_NumeroServicios_Jueves = Ln_NumeroServicios;
-                    SET Ln_Numero_Mensajeros_Jueves = ROUND((Ln_NumeroServicios / P_NumeroMensajeros_Hora),0);
-                    SET Ln_NumeroDias = Ln_NumeroDias + 1;
-				WHEN 6 THEN
-					SET Ln_NumeroServicios_Viernes = Ln_NumeroServicios;
-                    SET Ln_Numero_Mensajeros_Viernes = ROUND((Ln_NumeroServicios / P_NumeroMensajeros_Hora),0);
-                    SET Ln_NumeroDias = Ln_NumeroDias + 1;
-				WHEN 7 THEN
-					SET Ln_NumeroServicios_Sabado = Ln_NumeroServicios;
-                    SET Ln_Numero_Mensajeros_Sabado = ROUND((Ln_NumeroServicios / P_NumeroMensajeros_Hora),0);
-                    SET Ln_NumeroDias = Ln_NumeroDias + 1;
-				ELSE
-					SET Ln_NumeroServicios = 0;
-			END CASE;
+			SET Ln_NumeroServicios_ClienteFiel = Ln_NumeroServicios;  
+            SET Ln_Numero_Mensajeros_ClienteFiel = ROUND((Ln_NumeroServicios / P_NumeroMensajeros_Hora),0);
+            SET Ln_NumeroDias = Ln_NumeroDias + 1;            
             
-			-- Obtenemos la primera fila en la variables correspondientes
-			FETCH Cursor_Resumen_Festivo 
-				INTO Ln_NumeroPosicion, Ln_IdHorario, Lc_HoraInicio, Lc_HoraFinal, Ln_NumeroDiaSemana, Lc_NombreDiaSemana, Ln_TotalRegistros;		
 		
-			IF Ln_No_Mas_Datos = 1 THEN
-				LEAVE Resumen_Loop;
-			END IF;
-		
-		END WHILE NumeroPosicion_Loop;
+        SET Ln_NumeroMensajeros_Dia =	Ln_Numero_Mensajeros_ClienteFiel;
         
-        SET Ln_NumeroMensajeros_Dia =	Ln_Numero_Mensajeros_Domingo +     
-										Ln_Numero_Mensajeros_Lunes + Ln_Numero_Mensajeros_Martes +
-										Ln_Numero_Mensajeros_Miercoles + Ln_Numero_Mensajeros_Jueves +
-                                        Ln_Numero_Mensajeros_Viernes + Ln_Numero_Mensajeros_Sabado;
-        
-        IF Ln_NumeroDias > 0 THEN
-			SET Ln_Promedio_Mensajeros_Hora_Festivo = CEIL(Ln_NumeroMensajeros_Dia / Ln_NumeroDias);
-        ELSE
-			SET Ln_Promedio_Mensajeros_Hora_Festivo = 0;
-        END IF;        
+		SET Ln_Promedio_Mensajeros_Hora_ClienteFiel = CEIL(Ln_NumeroMensajeros_Dia);
         		
 		INSERT INTO t_resumen_clasificacion_dias (IdReportePedidosxPdv, IdClasificacionDia, NumeroPosicion, IdHorario, HoraInicio, HoraFinal, Lunes_Servicios,
 			Martes_Servicios, Miercoles_Servicios, Jueves_Servicios, Viernes_Servicios, Sabado_Servicios, Domingo_Servicios, Promedio_Mensajeros_Hora_Festivo,
             Numero_Mensajeros_Lunes, Numero_Mensajeros_Martes, Numero_Mensajeros_Miercoles, Numero_Mensajeros_Jueves, Numero_Mensajeros_Viernes, 
-            Numero_Mensajeros_Sabado, Numero_Mensajeros_Domingo) VALUES 
+            Numero_Mensajeros_Sabado, Numero_Mensajeros_Domingo, Promedio_Mensajeros_Hora_ClienteFiel, ClienteFiel_Servicios, Numero_Mensajeros_ClienteFiel) 
+			VALUES 
 			(P_IdReportePedidosxPdv, P_IdClasificacionDia, Ln_NumeroPosicion_Aux, Ln_IdHorario_Aux, Lc_HoraInicio_Aux, Lc_HoraFinal_Aux, Ln_NumeroServicios_Lunes,
 			Ln_NumeroServicios_Martes, Ln_NumeroServicios_Miercoles, Ln_NumeroServicios_Jueves, Ln_NumeroServicios_Viernes, Ln_NumeroServicios_Sabado,
             Ln_NumeroServicios_Domingo, Ln_Promedio_Mensajeros_Hora_Festivo, Ln_Numero_Mensajeros_Lunes, Ln_Numero_Mensajeros_Martes, Ln_Numero_Mensajeros_Miercoles, Ln_Numero_Mensajeros_Jueves,
-            Ln_Numero_Mensajeros_Viernes, Ln_Numero_Mensajeros_Sabado, Ln_Numero_Mensajeros_Domingo);
+            Ln_Numero_Mensajeros_Viernes, Ln_Numero_Mensajeros_Sabado, Ln_Numero_Mensajeros_Domingo, Ln_Promedio_Mensajeros_Hora_ClienteFiel, 
+			Ln_NumeroServicios_ClienteFiel, Ln_Numero_Mensajeros_ClienteFiel);
+
+		-- Obtenemos la primera fila en la variables correspondientes
+		FETCH Cursor_Resumen_Festivo 
+				INTO Ln_NumeroPosicion, Ln_IdHorario, Lc_HoraInicio, Lc_HoraFinal,  Ln_TotalRegistros;		
 		
+		IF Ln_No_Mas_Datos = 1 THEN
+			LEAVE Resumen_Loop;
+		END IF;
+			
     END WHILE Resumen_Loop;
     
 	CLOSE Cursor_Resumen_Festivo;
